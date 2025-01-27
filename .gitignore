@@ -1,0 +1,42 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+venv/
+
+# Python packaging
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Environment variables
+.env
+
+# IDE/Editor
+.idea/
+.vscode/
+.DS_Store
+
+# Docker
+*.log
+*.pid
+*.sock
+docker-compose.override.yml
+
+# Logs
+logs/
+*.log
+
+# SQLite (개발 중 임시 DB 파일)
+*.sqlite3
+
+# MySQL dump files or temporary files
+*.sql
+
+# PyCharm & MacOS specific files
+.idea/
+.DS_Store
