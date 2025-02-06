@@ -198,6 +198,6 @@ grafana.prod.ini
 
 ./interview/migrations
 ./result/migrations
-./member/migrations
+./user/migrations
 ./resume/migrations
 
