@@ -189,7 +189,6 @@ my_settings.py
 
 */static
 migrations
-!migrations/__init__.py
 
 .idea/
 /.idea
