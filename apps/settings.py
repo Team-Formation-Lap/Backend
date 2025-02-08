@@ -48,8 +48,10 @@ INSTALLED_APPS = [
     'user',
     'resume',
     'interview',
-    'result'
+    'result',
 
+    'drf_yasg',
+    'rest_framework'
 
 ]
 
