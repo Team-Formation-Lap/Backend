@@ -1,6 +1,6 @@
-from django.urls import path
+from django.urls import re_path
 from gpt.consumers import ChatConsumer
 
 websocket_urlpatterns = [
-    path('ws/gpt/',ChatConsumer.as_asgi()),
+    re_path(r"^ws/gpt/?$",ChatConsumer.as_asgi()),
 ]
