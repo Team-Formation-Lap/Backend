@@ -39,6 +39,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'celery',
     'daphne',
     'channels',
     'django.contrib.admin',
@@ -49,6 +50,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'drf_yasg',
     'rest_framework',
+    'django_celery_results',
     'user',
     'resume',
     'interview',
@@ -128,6 +130,13 @@ CHANNEL_LAYERS={
 }
 
 AUTH_USER_MODEL = "user.User"
+
+
+CELERY_BROKER_URL = "amqp://guest:guest@rabbitmq:5672/"
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_ACCEPT_CONTENT = ["application/json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
 
 
 # Internationalization
