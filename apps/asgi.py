@@ -12,13 +12,13 @@ from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
 
-import gpt.routing
+import interview.routing
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'apps.settings')
 
 application = ProtocolTypeRouter({
     "http":get_asgi_application(),
     "websocket":AuthMiddlewareStack(
-        URLRouter(gpt.routing.websocket_urlpatterns)
+        URLRouter(interview.routing.websocket_urlpatterns)
     )
 })
