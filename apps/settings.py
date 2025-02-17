@@ -50,7 +50,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'drf_yasg',
     'rest_framework',
-    'corsheaders'
+    'corsheaders',
     'django_celery_results',
     'user',
     'resume',
