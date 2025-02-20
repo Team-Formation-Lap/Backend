@@ -9,4 +9,6 @@ drf-yasg==1.21.8
 celery==5.4.0
 kombu==5.4.2
 django-celery-results==2.5.1
-openai==1.61.1
+boto3==1.36.18
+django-storages==1.14.4
+django-cors-headers==4.7.0
