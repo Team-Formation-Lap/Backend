@@ -42,8 +42,8 @@ ALLOWED_HOSTS = ["localhost",
 
 INSTALLED_APPS = [
     'celery',
-    'daphne',
-    'channels',
+    # 'daphne',
+    # 'channels',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -105,7 +105,7 @@ DATABASES = {
     }
 }
 
-ASGI_APPLICATION = "apps.asgi.application"
+# ASGI_APPLICATION = "apps.asgi.application"
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
@@ -124,11 +124,11 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-CHANNEL_LAYERS={
-    "default":{
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
-    },
-}
+# CHANNEL_LAYERS={
+#     "default":{
+#         "BACKEND": "channels.layers.InMemoryChannelLayer",
+#     },
+# }
 
 AUTH_USER_MODEL = "user.User"
 
