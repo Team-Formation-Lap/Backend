@@ -49,6 +49,7 @@ services:
       - RABBITMQ_USER=guest
       - RABBITMQ_PASSWORD=guest
     depends_on:
+      - db
       - backend
     networks:
       - FLAP
