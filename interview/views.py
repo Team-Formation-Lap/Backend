@@ -25,8 +25,9 @@ class StartInterviewView(APIView):
             if not questions_count or not (3<=int(questions_count)<=10):
                 return JsonResponse({"error": "질문 개수는 3~10개 사이여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-            #사용자 이력서 가져오기(우선 임의값 넣어놓음)
-            resume=Resume.objects.create(user_id=user_id, file_url="test_resume.pdf")
+            #사용자의 가장 최근 업로드 된 이력서 가져오기
+            resume=Resume.objects.filter(user_id=user_id).order_by("-id").first()
+
             if not resume:
                 return JsonResponse({"error": "이력서를 찾을 수 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -37,6 +38,7 @@ class StartInterviewView(APIView):
                     "message": "면접이 시작되었습니다.",
                     "user_id": user_id,
                     "interview_id":interview.id,
+                    "resume_id":resume.id,
                     "questions_count":questions_count
                 },
                 status=status.HTTP_201_CREATED
