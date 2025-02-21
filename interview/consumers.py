@@ -52,16 +52,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         try:
             data=json.loads(text_data)
-            user_answer=data.get("message")
+            user_audio_url=data.get("audio_url")
 
-            if not user_answer:
-                logging.warning("수신된 메세지가 비어있음")
+            if not user_audio_url:
+                logging.warning("사용자 음성 파일이 없음")
                 return
 
-            new_question = await database_sync_to_async(get_gpt_question)(self.interview_id, user_answer)
+            new_question = await database_sync_to_async(get_gpt_question)(self.interview_id, user_audio_url)
 
             if new_question:
-                await self.send(text_data=json.dumps({"message": new_question.content}))
+                await self.send(text_data=json.dumps({
+                    "text": new_question["text"],
+                    "audio_url":new_question["audio_url"]
+                }))
             else:
                 await self.send(text_data=json.dumps({"message": "GPT 질문 생성 실패"}))
 

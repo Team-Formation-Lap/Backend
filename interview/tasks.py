@@ -52,6 +52,36 @@ def get_resume_text(interview_id):
 
     return extract_text_from_pdf(pdf_path)
 
+def upload_audio_to_s3(audio_file, file_name):
+    try:
+        s3_key = f"stt/{file_name}.mp3"
+        s3_client.upload_file(audio_file, os.getenv("AWS_STORAGE_BUCKET_NAME"), s3_key)
+        return f"https://{os.getenv('AWS_STORAGE_BUCKET_NAME')}.s3.amazonaws.com/{s3_key}"
+
+    except Exception as e:
+        logging.error(f"음성 파일 s3 업로드 실패:{e}")
+        return None
+
+def speech_to_text(audio_url):
+    try:
+        response=requests.get(audio_url)
+        response.raise_for_status()
+
+        file_path="/tmp/audio.mp3"
+        with open(file_path, "wb") as f:
+            f.write(response.content)
+
+        with open(file_path, "rb") as audio_file:
+            transcript=openai.Audio.transcribe(
+                model="whisper-1",
+                file=audio_file
+            )
+
+        return transcript["text"]
+
+    except Exception as e:
+        logging.error(f"STT 변환 실패:{e}")
+        return None
 
 def text_to_speech(text, interview_question):
     try:
