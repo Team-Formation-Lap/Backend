@@ -117,7 +117,7 @@ def get_gpt_question(interview_id, user_answer=None):
         gpt_prompt=f"다음 이력서를 기반으로 면접 첫 번째 질문을 만들어 주세요:\n{resume_text}"
 
     else:
-        gpt_prompt = f"이전 답변 '{user_answer}'과 '{resume_text}'을 기반으로 한 다음 질문을 생성해주세요."
+        gpt_prompt = f"이전 답변 '{user_answer}'과 이력서를 :기반으로 한 다음 질문을 생성해주세요."
 
     try:
         client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # ✅ 최신 API 사용
