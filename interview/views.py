@@ -1,6 +1,7 @@
 import os
 import boto3
 import logging
+import requests
 from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from django.http import JsonResponse
@@ -9,6 +10,7 @@ from rest_framework.views import APIView
 from interview.tasks import generate_feedback
 from interview.models import Interview, Resume
 from result.models import Result
+from interview.utils import analyze_behavior
 from django.core.exceptions import ObjectDoesNotExist
 from interview.serializers import StartInterviewSerializer
 
@@ -59,10 +61,77 @@ class StartInterviewView(APIView):
             return JsonResponse({"error":"면접 시작 실패"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+# 사용자 행동 분석 API
+class BehaviorAnalysisView(APIView):
+    @swagger_auto_schema(
+        operation_id="사용자 행동 분석",
+        operation_description="면접 영상을 분석하여 행동 데이터를 반환하는 API",
+    )
+    def post(self, request, interview_id):
+        try:
+            interview=Interview.objects.get(id=interview_id)
+
+            # 면접 영상 s3에서 가져오기
+            result=Result.objects.filter(interview=interview).first()
+            if not result or not result.video_url:
+                return Response(
+                    {"error": "업로드 된 면접 영상을 찾을 수 없습니다."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            video_url=result.video_url
+            video_path=self.download_video_from_s3(video_url, interview_id)
+            if not video_path:
+                return Response(
+                    {"error":"s3에서 영상 다운로드 실패"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+            # 행동 분석 시작
+            behavior_data=analyze_behavior(video_path)
+
+            # 행동 분석 데이터 저장
+            result.behavior_data=behavior_data
+            result.save()
+
+            os.remove(video_path)
+            logging.info(f"로컬 영상 파일 삭제 완료:{video_path}")
+
+            return Response( {
+                "message":"행동 분석 완료",
+                "behavior_data":behavior_data
+            }, status=status.HTTP_201_CREATED)
+
+        except Interview.DoseNotExist:
+            return Response(
+                {"error":"해당 면접 정보를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logging.error(f"행동 분석 오류:{e}")
+            return Response({"error":"행동 분석 실패"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+     # s3에서 면접 영상을 다운로드 받아 (백엔드 서버)로컬에 저장 -> 분석 완료 후 로컬 영상 삭제됨
+    def download_video_from_s3(self, video_url, interview_id):
+        try:
+            temp_video_path=f"/tmp/interview_{interview_id}.mp4"
+            response=requests.get(video_url)
+
+            if response.status_code !=200:
+                return None
+            with open(temp_video_path,"wb") as f:
+                f.write(response.content)
+
+            return temp_video_path
+
+        except Exception as e:
+            logging.error(f"S3 영상 다운로드 실패:{e}")
+            return  None
+
+
 # 면접 결과 생성 API
 class InterviewResultView(APIView):
     @swagger_auto_schema(
-        request_body=StartInterviewSerializer,  # ✅ Serializer를 직접 사용
+        # request_body=StartInterviewSerializer,
         operation_id="면접 결과 생성",
         operation_description="면접 결과를 생성하는 API",
     )
@@ -75,9 +144,12 @@ class InterviewResultView(APIView):
             result=Result.objects.filter(interview=interview).first()
             if not result or not result.video_url:
                 return Response({"error":"업로드 된 면접 영상을 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
-            behavior_data=(
-                "면접자가 자주 시선을 돌렸고, 손을 계속 만지는 행동을 보였습니다."
-            )
+
+            #행동 분석 데이터 가져오기
+            if result.behavior_data:
+                behavior_data=result.behavior_data
+            else:
+                return Response({"error":"행동 분석 데이터가 없습니다."}, status=status.HTTP_404_NOT_FOUND)
 
             #피드백 생성
             feedback=generate_feedback(interview_id, behavior_data)
@@ -107,3 +179,4 @@ class InterviewResultView(APIView):
         except Exception as e:
             logging.error(f"면접 결과 생성 오류:{e}")
             return Response({"error":"면접 결과 생성 실패"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

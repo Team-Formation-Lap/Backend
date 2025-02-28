@@ -4,6 +4,8 @@ FROM python:3.9
 # 작업 디렉토리 생성 및 설정
 WORKDIR /Backend
 
+RUN apt-get update && apt-get install -y libgl1-mesa-glx
+
 # 필요한 패키지 설치
 RUN pip install --upgrade pip
 COPY requirements.txt /Backend/
