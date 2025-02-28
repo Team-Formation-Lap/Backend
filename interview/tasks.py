@@ -6,6 +6,8 @@ from interview.models import GPTQuestion, Interview, UserAnswer
 from dotenv import load_dotenv
 import logging
 import requests
+import uuid
+import time
 
 load_dotenv()
 openai.api_key=os.getenv("OPENAI_API_KEY")
@@ -67,7 +69,7 @@ def get_gpt_question(interview_id, user_answer=None):
         gpt_prompt = f"이전 답변 '{user_answer}'과 이력서를 기반으로 한 다음 질문을 한 개 생성해주세요."
 
     try:
-        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # ✅ 최신 API 사용
+        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
@@ -92,7 +94,7 @@ def get_gpt_question(interview_id, user_answer=None):
     return {"text":new_question, "audio_url":tts_url}
 
 
-# TTS - GPT 질문 텍스트 변환
+# TTS - GPT 질문 TTS 변환
 def text_to_speech(text, interview_question):
     try:
         response=openai.audio.speech.create(
@@ -105,7 +107,9 @@ def text_to_speech(text, interview_question):
         with open(file_path, "wb") as f:
             f.write(response.content)
 
-        s3_key=f"tts/{interview_question}.mp3"
+        timestamp = int(time.time())  # 현재 시간 (초)
+        unique_id = uuid.uuid4().hex[:8]  # 짧은 UUID
+        s3_key=f"tts/{interview_question}_{timestamp}_{unique_id}.mp3"
         s3_client.upload_file(file_path, os.getenv("AWS_STORAGE_BUCKET_NAME"), s3_key)
 
         return f"https://{os.getenv('AWS_STORAGE_BUCKET_NAME')}.s3.amazonaws.com/{s3_key}"
@@ -115,7 +119,7 @@ def text_to_speech(text, interview_question):
         return None
 
 
-# STT - 사용자 음성 답변 텍스트 변환
+# STT - 사용자 음성 답변 텍스트로 변환
 def speech_to_text(audio_url):
     try:
         response=requests.get(audio_url)
@@ -125,13 +129,15 @@ def speech_to_text(audio_url):
         with open(file_path, "wb") as f:
             f.write(response.content)
 
+        client=openai.OpenAI(api_key=os.getenv("OPEN_API_KEY"))
+
         with open(file_path, "rb") as audio_file:
-            transcript=openai.Audio.transcribe(
+            transcript=client.audio.transcriptions.create(
                 model="whisper-1",
                 file=audio_file
             )
 
-        return transcript["text"]
+        return transcript.text
 
     except Exception as e:
         logging.error(f"STT 변환 실패:{e}")
@@ -141,7 +147,9 @@ def speech_to_text(audio_url):
 # 사용자 답변 음성 파일 s3 업로드
 def upload_audio_to_s3(audio_file, file_name):
     try:
-        s3_key = f"stt/{file_name}.mp3"
+        timestamp = int(time.time())  # 현재 시간 (초)
+        unique_id = uuid.uuid4().hex[:8]  # 짧은 UUID
+        s3_key = f"stt/{file_name}_{timestamp}_{unique_id}.mp3"
         s3_client.upload_file(audio_file, os.getenv("AWS_STORAGE_BUCKET_NAME"), s3_key)
         return f"https://{os.getenv('AWS_STORAGE_BUCKET_NAME')}.s3.amazonaws.com/{s3_key}"
 
