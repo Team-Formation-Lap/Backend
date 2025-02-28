@@ -14,7 +14,8 @@ class ResultVideoUploadView(APIView):
 
     @swagger_auto_schema(
         request_body=ResultVideoUploadSerializer,
-        operation_id="결과 업로드 API",
+        operation_id="면접 영상 업로드 API",
+        operation_description="면접 영상을 s3에 업로드 하는 API",
     )
     def post(self, request, interview_id):
         #user = request.user
@@ -29,7 +30,7 @@ class ResultVideoUploadView(APIView):
         interview = Interview.objects.get(id=interview_id)
         user_id = interview.user.id
 
-        video_path = f"video/{user_id}/{video.name}"
+        video_path = f"video/{user_id}/{interview_id}/{video.name}"
         saved_path = default_storage.save(video_path, ContentFile(video.read()))
         video_url = default_storage.url(saved_path)
 
