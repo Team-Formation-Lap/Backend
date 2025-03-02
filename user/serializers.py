@@ -7,6 +7,9 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['email', 'nickname', 'password']
+        extra_kwargs = {
+            "email": {"validators": []}  # Django 기본 unique 검사 비활성화
+        }
 
     def validate_password(self, value):
         if len(value) < 6:

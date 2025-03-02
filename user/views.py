@@ -13,4 +13,5 @@ class UserRegistrationView(APIView):
             user = serializer.save()
             return Response({"nickname": user.nickname, "email": user.email}, status=status.HTTP_201_CREATED)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        errors = list(serializer.errors.values())[0]
+        return Response({"error": errors[0]}, status=status.HTTP_400_BAD_REQUEST)
