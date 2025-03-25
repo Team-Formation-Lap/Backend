@@ -17,3 +17,8 @@ class UserSerializer(serializers.ModelSerializer):
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("이미 존재하는 이메일입니다.")
         return value
+
+class EmailCheckSerializer(serializers.Serializer):
+    email = serializers.EmailField(
+        error_messages={"invalid": "이메일 형식을 입력하세요."}
+    )
