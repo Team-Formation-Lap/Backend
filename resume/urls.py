@@ -3,4 +3,7 @@ from resume import views
 
 appname = "resume"
 
-urlpatterns = [path("upload/<user_id>", views.ResumeUploadView.as_view(), name="upload"),]
+urlpatterns = [
+    path("upload/<user_id>", views.ResumeUploadView.as_view(), name="upload"),
+    path("list/<user_id>", views.ResumeListView.as_view(), name="resumes-list")
+]
