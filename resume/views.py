@@ -39,6 +39,21 @@ class ResumeUploadView(APIView):
             "file_url": resume.file_url
         }, status=status.HTTP_201_CREATED)
 
+class ResumeListView(APIView):
+    @swagger_auto_schema(
+        operation_id="이력서 조회",
+    )
+    def get(self, request, user_id):
+        resumes = Resume.objects.filter(user_id=user_id)
+        resume_list = [
+            {
+                "resume_id": resume.id,
+                "filename": resume.filename
+            }
+            for resume in resumes
+        ]
+        return Response({"resumes": resume_list}, status=status.HTTP_200_OK)
+
 class ResumeDeleteView(APIView):
     @swagger_auto_schema(
         operation_id="이력서 삭제"
