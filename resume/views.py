@@ -4,6 +4,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+from django.conf import settings
 from resume.models import Resume
 from resume.serializers import ResumeUploadSerializer
 from drf_yasg.utils import swagger_auto_schema
@@ -52,3 +53,14 @@ class ResumeListView(APIView):
             for resume in resumes
         ]
         return Response({"resumes": resume_list}, status=status.HTTP_200_OK)
+
+class ResumeDeleteView(APIView):
+    @swagger_auto_schema(
+        operation_id="이력서 삭제"
+    )
+    def delete(self, request, resume_id):
+        resume = Resume.objects.get(id=resume_id)
+        file_path = resume.file_url.replace(settings.MEDIA_URL, "")
+        default_storage.delete(file_path)
+        resume.delete()
+        return Response({"message": "이력서 삭제 성공"}, status=status.HTTP_200_OK)
