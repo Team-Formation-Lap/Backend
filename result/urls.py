@@ -4,7 +4,6 @@ from result import views
 appname = "result"
 
 urlpatterns = [
-    path("upload/<int:interview_id>",
-         views.ResultVideoUploadView.as_view(),
-         name="video-upload"),
+    path("upload/<int:interview_id>", views.ResultVideoUploadView.as_view(), name="video-upload"),
+    path("list/<int:user_id>", views.ResultListView.as_view(), name="results-list"),
 ]
