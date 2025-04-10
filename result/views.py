@@ -8,7 +8,7 @@ from django.conf import settings
 from result.models import Result
 from result.serializers import ResultVideoUploadSerializer
 from drf_yasg.utils import swagger_auto_schema
-from interview.models import Interview
+from interview.models import Interview, GPTQuestion, UserAnswer
 
 class ResultVideoUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
@@ -56,3 +56,28 @@ class ResultListView(APIView):
             for result in results
         ]
         return Response({"results": result_list}, status=status.HTTP_200_OK)
+
+class ResultOpenView(APIView):
+    @swagger_auto_schema(
+        operation_id="면접결과 내용 조회",
+        operation_description="면접결과 내용을 출력하는 API"
+    )
+    def get(self, request, interview_id):
+        result = Result.objects.get(interview_id=interview_id)
+
+        questions = GPTQuestion.objects.filter(interview_id=interview_id).prefetch_related("useranswer")
+        qna_pair = []
+        for q in questions:
+            qna_pair.append({
+                "question": q.content,
+                "answer": q.useranswer.content if hasattr(q, "useranswer") else " "
+            })
+
+        return Response({
+            "resume": result.interview.resume.filename,
+            "resume_id": result.interview.resume_id,
+            "overall_feedback": result.overall_feedback,
+            "behavior_feedback": result.behavior_feedback,
+            "answer_feedback": result.answer_feedback,
+            "qna_pair": qna_pair,
+        }, status=status.HTTP_200_OK)
