@@ -46,14 +46,16 @@ class ResultVideoUploadView(APIView):
 
 class ResultListView(APIView):
     @swagger_auto_schema(
-        operation_id="면접결과 조회",
+        operation_id="면접결과 전체 조회",
         operation_description="면접결과 리스트를 조회하는 API"
     )
     def get(self, request, user_id):
         results = Result.objects.filter(interview_id__user_id=user_id)
         result_list = [
             {
-                "result_id": result.id
+                "result_id": result.id,
+                "resume": result.interview.resume.filename,
+                "create_at": result.created_at.astimezone().strftime('%Y-%m-%d %H:%M')
             }
             for result in results
         ]
