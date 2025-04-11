@@ -2,6 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.conf import settings
@@ -12,6 +13,7 @@ from interview.models import Interview, GPTQuestion, UserAnswer
 
 class ResultVideoUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
+    permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
         request_body=ResultVideoUploadSerializer,
@@ -27,8 +29,8 @@ class ResultVideoUploadView(APIView):
         if not video.name.endswith((".webm")):
             return Response({"error": "webm 형식의 영상 파일만 업로드할 수 있습니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        interview = Interview.objects.get(id=interview_id)
-        user_id = interview.user.id
+        interview = Interview.objects.get(id=interview_id, user_id=request.user.id)
+        user_id = request.user.id
 
         video_path = f"video/{user_id}/{interview_id}/{video.name}"
         saved_path = default_storage.save(video_path, ContentFile(video.read()))
