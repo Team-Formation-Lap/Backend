@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'drf_yasg',
     'rest_framework',
+    'rest_framework_simplejwt',
     'corsheaders',
     'django_celery_results',
     'user',
@@ -142,6 +143,34 @@ CHANNEL_LAYERS={
 
 AUTH_USER_MODEL = "user.User"
 
+# 인증 백엔드 설정
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'user.backends.EmailBackend',
+]
+
+# REST Framework 설정
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'user.authentication.CustomJWTAuthentication',
+    ),
+}
+
+# JWT 설정
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+}
 
 CELERY_BROKER_URL = "amqp://guest:guest@rabbitmq:5672/"
 CELERY_RESULT_BACKEND = "django-db"
@@ -172,6 +201,27 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# 로깅 설정
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+        'user': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+    },
+}
+
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
@@ -181,3 +231,15 @@ DEFAULT_FILE_STORAGE = os.getenv('DEFAULT_FILE_STORAGE')
 
 AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
 MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+
+# Swagger 설정
+SWAGGER_SETTINGS = {
+    'USE_SESSION_AUTH': False,
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header'
+        }
+    }
+}

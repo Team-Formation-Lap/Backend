@@ -2,6 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from result.models import Result
@@ -11,6 +12,7 @@ from interview.models import Interview
 
 class ResultVideoUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
+    permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
         request_body=ResultVideoUploadSerializer,
@@ -18,7 +20,6 @@ class ResultVideoUploadView(APIView):
         operation_description="면접 영상을 s3에 업로드 하는 API",
     )
     def post(self, request, interview_id):
-        #user = request.user
         video = request.FILES.get("file")
 
         if not video:
@@ -27,8 +28,8 @@ class ResultVideoUploadView(APIView):
         if not video.name.endswith((".webm", ".mp4")):
             return Response({"error": "webm 형식의 영상 파일만 업로드할 수 있습니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        interview = Interview.objects.get(id=interview_id)
-        user_id = interview.user.id
+        interview = Interview.objects.get(id=interview_id, user_id=request.user.id)
+        user_id = request.user.id
 
         video_path = f"video/{user_id}/{interview_id}/{video.name}"
         saved_path = default_storage.save(video_path, ContentFile(video.read()))
