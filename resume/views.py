@@ -45,7 +45,8 @@ class ResumeListView(APIView):
     @swagger_auto_schema(
         operation_id="이력서 조회",
     )
-    def get(self, request, user_id):
+    def get(self, request):
+        user_id = request.user.id
         resumes = Resume.objects.filter(user_id=user_id)
         resume_list = [
             {
