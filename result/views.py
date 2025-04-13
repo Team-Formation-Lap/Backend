@@ -68,10 +68,10 @@ class ResultOpenView(APIView):
         operation_id="면접결과 내용 조회",
         operation_description="면접결과 내용을 출력하는 API"
     )
-    def get(self, request, interview_id):
-        result = Result.objects.get(interview_id=interview_id)
+    def get(self, request, result_id):
+        result = Result.objects.get(id=result_id)
 
-        questions = GPTQuestion.objects.filter(interview_id=interview_id).prefetch_related("useranswer")
+        questions = GPTQuestion.objects.filter(interview_id=result.interview_id).prefetch_related("useranswer")
         qna_pair = []
         for q in questions:
             qna_pair.append({
