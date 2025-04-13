@@ -5,7 +5,6 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
-from django.conf import settings
 from result.models import Result
 from result.serializers import ResultVideoUploadSerializer
 from drf_yasg.utils import swagger_auto_schema
@@ -85,3 +84,15 @@ class ResultOpenView(APIView):
             "answer_feedback": result.answer_feedback,
             "qna_pair": qna_pair,
         }, status=status.HTTP_200_OK)
+
+class ResultDeleteView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_id="면접결과 삭제",
+        operation_description="면접결과를 삭제하는 API"
+    )
+    def delete(self, request, interview_id):
+        interview = Interview.objects.get(id=interview_id)
+        interview.delete()
+        return Response({"message": "면접결과 삭제 성공"}, status=status.HTTP_200_OK)
