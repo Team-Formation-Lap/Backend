@@ -42,6 +42,7 @@ class ResumeUploadView(APIView):
         }, status=status.HTTP_201_CREATED)
 
 class ResumeListView(APIView):
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_id="이력서 조회",
     )
@@ -58,6 +59,7 @@ class ResumeListView(APIView):
         return Response({"resumes": resume_list}, status=status.HTTP_200_OK)
 
 class ResumeDeleteView(APIView):
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_id="이력서 삭제"
     )

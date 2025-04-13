@@ -44,11 +44,13 @@ class ResultVideoUploadView(APIView):
         }, status=status.HTTP_201_CREATED)
 
 class ResultListView(APIView):
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_id="면접결과 전체 조회",
         operation_description="면접결과 리스트를 조회하는 API"
     )
-    def get(self, request, user_id):
+    def get(self, request):
+        user_id = request.user.id
         results = Result.objects.filter(interview_id__user_id=user_id)
         result_list = [
             {
@@ -61,6 +63,7 @@ class ResultListView(APIView):
         return Response({"results": result_list}, status=status.HTTP_200_OK)
 
 class ResultOpenView(APIView):
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_id="면접결과 내용 조회",
         operation_description="면접결과 내용을 출력하는 API"
