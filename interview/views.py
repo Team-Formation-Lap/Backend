@@ -31,35 +31,40 @@ class StartInterviewView(APIView):
     )
     def post(self, request):
         try:
-            # 요청 데이터에서 질문 개수 가져오기
-            questions_count = request.data.get("question_count")
             user_id = request.user.id  # 토큰을 통해 인증된 사용자 ID
+            data=request.data
+            questions_count = request.data.get("question_count")
+            resume_id=data.get("resume_id")
 
             if not questions_count or not (3 <= int(questions_count) <= 10):
                 return JsonResponse({"error": "질문 개수는 3~10개 사이여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-            # 사용자의 가장 최근 업로드 된 이력서 가져오기
-            resume = Resume.objects.filter(user_id=user_id).order_by("-id").first()
+            if resume_id:
+                try:
+                    resume = Resume.objects.get(id=resume_id, user_id=user_id) #기존 이력서 사용
+                except Resume.DoesNotExist:
+                    return JsonResponse({"error": "지정한 이력서를 찾을 수 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                resume = Resume.objects.filter(user_id=user_id).order_by("-id").first()  #새로운 이력서 업로
+                if not resume:
+                    return JsonResponse({"error": "이력서를 찾을 수 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-            if not resume:
-                return JsonResponse({"error": "이력서를 찾을 수 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
-
-            interview = Interview.objects.create(user_id=user_id, resume=resume, questions_count=questions_count)
+            interview=Interview.objects.create(user_id=user_id,resume=resume,questions_count=questions_count)
 
             return JsonResponse(
-                {
-                    "message": "면접이 시작되었습니다.",
-                    "user_id": user_id,
-                    "interview_id": interview.id,
-                    "resume_id": resume.id,
-                    "questions_count": questions_count
-                },
-                status=status.HTTP_201_CREATED
+            {
+                "message": "면접이 시작되었습니다.",
+                "user_id": user_id,
+                "interview_id": interview.id,
+                "resume_id": resume.id,
+                "questions_count": questions_count
+            },
+            status=status.HTTP_201_CREATED
             )
 
-        except Exception as e:
-            logging.error(f"면접 시작 오류: {e}")
-            return JsonResponse({"error": "면접 시작 실패"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:(
+        logging.error(f"면접 시작 오류: {e}"))
+        return JsonResponse({"error": "면접 시작 실패"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # 사용자 행동 분석 API
