@@ -7,5 +7,5 @@ urlpatterns = [
     path("upload/<int:interview_id>", views.ResultVideoUploadView.as_view(), name="video-upload"),
     path("list", views.ResultListView.as_view(), name="results-list"),
     path("<int:result_id>", views.ResultOpenView.as_view(), name="result-open"),
-    path("delete/<int:interview_id>", views.ResultDeleteView.as_view(), name="result-delete"),
+    path("delete/<int:result_id>", views.ResultDeleteView.as_view(), name="result-delete"),
 ]
