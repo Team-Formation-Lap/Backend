@@ -176,7 +176,17 @@ def generate_feedback(interview_id, behavior_data):
         })
 
         # 답변 피드백 생성
-        answers_feedback_prompt = f"다음 면접 질문에 대한 사용자의 답변을 보고 각 답변에 대해 피드백을 제공해주세요.\n{conversation}"
+        answers_feedback_prompt = (f"당신은 전문 면접 컨설턴트입니다. 아래는 면접 질문과 사용자의 답변 데이터입니다."
+                                   f"각 답변에 대해 아래 3가지 기준에 따라 피드백을 제공해주세요"
+                                   f"1.사용자의 답변 중 기술적으로 틀린 부분이 있다면\"어느 문장의 어떤 내용이 왜 잘못되었는지\"를 명확히 설명해주세요."
+                                   f"올바른 개념이나 용어로 \"정정된 내용\"을 함께 제시해주세요."
+                                   f"해당 오류에 대해 사용자가 보완하면 좋을 공부 방향(예: 문서, 키워드, 관련 주제 등)을 피드백을 제공해주세요."
+                                   f"2.면접 상황에서 이 답변이 얼마나 명확하고 설득력 있게 전달되었는지 평가해주세요."
+                                   f"중복 표현, 모호한 단어, 불필요하게 긴 문장이 있는 경우, 어떻게 더 간결하고 논리적으로 표현할 수 있는지도 제안해주세요."
+                                   f"질문에 적절히 답변했는지, 논리 구조가 명확했는지를 평가해주세요."
+                                   f"도입 → 문제 인식 → 해결 → 결과의 흐름이 자연스러운지, 면접관 입장에서 신뢰를 줄 수 있는 구성인지 판단해주세요."
+                                   f"출력은 다음 형식을 따르세요: \"question\": \"질문 내용\",\"answer\": \"답변 내용\",\"feedback\": \"답변피드백\""
+                                   f"답변 데이터:{conversation}")
         client=openai.OpenAI(api_key=os.getenv("OPENAI_API_KET"))
         answer_feedback_response=client.chat.completions.create(
             model="gpt-4o",
@@ -188,7 +198,13 @@ def generate_feedback(interview_id, behavior_data):
         answer_feedback= answer_feedback_response.choices[0].message.content.strip()
 
         # 행동 피드백 생성
-        behavior_feedback_prompt=f"다음 면접자의 행동 분석 데이터를 보고 피드백을 제공하세요:\n{behavior_data}"
+        behavior_feedback_prompt=(f"당신은 전문 면접 컨설턴트입니다. 아래는 사용자의 모의면접 영상에서 추출된 행동 데이터입니다. "
+                                  f"각 행동(event)은 면접자가 특정 시간 동안 보인 행동을 의미합니다."
+                                  f"각 행동에 대해 면접 전문가로서 2~4문장의 피드백을 작성해 주세요."
+                                  f"다음 3가지를 포함하여 작성해 주세요:1. 이 행동이 어떤 인상을 줄 수 있는지, 2. 면접에서 바람직한 행동인지 평가,3. 실전 면접에서 개선/유지할 팁"
+                                  f"출력은 다음 형식을 따르세요: [시작~끝초|피드백]"
+                                  f"행동 데이터:{behavior_data}")
+
         behavior_feedback_response=client.chat.completions.create(
             model="gpt-4o",
             messages=[
