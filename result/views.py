@@ -95,7 +95,9 @@ class ResultDeleteView(APIView):
         operation_id="면접결과 삭제",
         operation_description="면접결과를 삭제하는 API"
     )
-    def delete(self, request, interview_id):
-        interview = Interview.objects.get(id=interview_id)
+    def delete(self, request, result_id):
+        result = Result.objects.select_related("interview").get(id=result_id)
+        interview = result.interview
+        result.delete()
         interview.delete()
         return Response({"message": "면접결과 삭제 성공"}, status=status.HTTP_200_OK)
