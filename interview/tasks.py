@@ -9,6 +9,26 @@ import requests
 import uuid
 import time
 
+QUESTION_GUIDELINE_INIT = (
+    f"현재 면접상황이고, 당신은 지원자를 평가하는 기술면접관 역할이다.\n"
+    f"기술면접 기준에 따라 유동적인 질문을 생성할 것\n"
+    f"질문은 실제 기술면접처럼 맥락 있고 유연하게 구성하되, 기준의 핵심 평가 요소를 반영해야 한다.\n"
+    f"0.논리성: 문제를 단계적으로 분석하고 해결하는 논리적 사고 능력\n" 
+    f"기준에 대해 언급은 하지말고 짧은 인사로 시작\n"
+    f"**면접 대사 외에는 말하지 말 것**\n"
+    f"**질문은 반드시 하나만, 실제 면접 질문처럼 말할 것. 설명이나 해설 없이 질문만 생성**\n"
+)
+QUESTION_GUIDELINE_FOLLOWING = (
+    f"이전 답변내용과 이력서를 반영한 유동적인 면접질문을 하나씩 생성할 것\n"
+    f"0.논리성: 문제를 단계적으로 분석하고 해결하는 논리적 사고 능력\n"
+    f"1.정확성: 기술적 지식의 정확성, 구현 결과물의 신뢰성\n"
+    f"2.효율성: 성능, 확장성, 코드 최적화 등 효율적인 해결책 제시\n"
+    f"3.협업 및 커뮤니케이션: 협업 경험, 코드 리뷰 태도, 의사소통 능력\n"
+    f"4.성장 가능성 및 태도: 새로운 기술 학습 의지, 피드백 수용, 문제 접근 태도\n"
+    f"**질문은 반드시 하나만, 실제 면접 질문처럼 말할 것. 설명이나 해설 없이 질문만 생성**\n"
+    f"질문은 100자를 넘기지 말 것"
+)
+
 load_dotenv()
 openai.api_key=os.getenv("OPENAI_API_KEY")
 
@@ -56,26 +76,21 @@ def get_resume_text(interview_id):
 
 # gpt 질문 생성
 def get_gpt_question(interview_id, user_answer=None):
-    # 면접 ID와 사용자 답변을 받아 GPT가 다음 질문을 생성하는 함수
     resume_text = get_resume_text(interview_id)
 
-    #첫 질문일 경우, 사용자의 이력서를 가져와 질문 생성
+    interview = Interview.objects.get(id=interview_id)
+    question_count = interview.user.question_count
+
     if user_answer is None:
-        # gpt_prompt=(f"당신은 IT 직군의 기술 면접관입니다. 지원자가 업로드한 이력서를 바탕으로, 실무 경험을 검증할 수 있는 기술 질문을 하나 짧게 생성하세요. 질문은 반드시 다음 조건을 충족해야 합니다: "
-        #             f"1.먼저 해당 경험이 있는지만 간단히 묻습니다. **그에 대한 후속질문 작성하지 말 것**(ex - '만약 있다면' '~하다면')"
-        #             f"2.그 경험이 있다고 응답했을 때만, 이어서 하나의 짧고 명확한 기술 질문을 합니다. "
-        #             f"3.한 질문당 하나의 포인트(시스템 구조, 역할 수행, 문제 해결 중 하나)에만 집중합니다. "
-        #             f"4.면접관의 인삿말로 시작하고, 면접 질문 외에는 아무 말도 하지 않습니다.\n{resume_text}")
-        gpt_prompt=(f"당신은 IT 직군의 기술 면접관입니다. 지원자가 업로드한 이력서를 바탕으로, 실무 경험을 검증할 수 있는 기술 질문을 하나 작성하세요. 질문은 반드시 다음 조건을 충족해야 합니다:"
-                    f"1. 먼저 해당 경험이 있는지만 간단히 묻습니다."
-                    f"2. 그 경험에 대한 후속 질문은 작성하지 않습니다. "
-                    f"3. 한 질문당 하나의 포인트(시스템 구조, 역할 수행, 문제 해결 중 하나)에만 집중합니다."
-                    f"4. 면접관의 인삿말로 시작합니다."f"\n{resume_text}")
-    else:
-        gpt_prompt = (f"중간중간 짧은 추임새를 하나 해주세요. 이전 답변 {user_answer}과 이력서를 기반으로 한 다음 질문을 짧게 한 개 생성해주세요. "
-                      f"(도전과제, 배운점, 깨달은점 중 하나를 선택해서 물을 것)"
-                      f"한 주제에 두가지 질문 이상을 하지마세요"
-                      f"**면접 질문 외에 다른 말은 절대 하지 마세요.**")
+        gpt_prompt = (f"이력서: {resume_text}\n"
+                      f"가이드라인: {QUESTION_GUIDELINE_INIT}\n"
+                      )
+    else :
+        gpt_prompt = (f"사용자 답변: {user_answer}\n"
+                      f"이력서: {resume_text}\n"
+                      f"{question_count}번 기준에 대해 질문할 것"
+                      f"가이드라인: {QUESTION_GUIDELINE_FOLLOWING}\n"
+                     )
 
     try:
         client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -99,6 +114,12 @@ def get_gpt_question(interview_id, user_answer=None):
         return None
 
     question=GPTQuestion.objects.create(interview_id=interview_id, content=new_question)
+
+    user = interview.user
+    user.question_count += 1
+    if user.question_count == 5 :
+        user.question_count = 0
+    user.save()
 
     return {"text":new_question, "audio_url":tts_url}
 
