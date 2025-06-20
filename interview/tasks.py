@@ -251,3 +251,33 @@ def generate_feedback(interview_id, behavior_data):
     except Exception as e:
         logging.error(f"GPT 피드백 생성 실패:{e}")
         return None
+
+def generate_answer_summary(combined_answers):
+    try:
+        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+        prompt = (
+            f"면접자가 실제 면접에서 질문을 받고 대답한 전체 답변이다.\n"
+            f"{combined_answers}\n"
+            f"지원자의 전체 답변을 기반으로 다음 사항을 포함한 종합 요약 피드백을 작성할 것:\n"
+            f"1.논리성: 문제를 단계적으로 분석하고 해결하는 논리적 사고 능력\n"
+            f"2.정확성: 기술적 지식의 정확성, 구현 결과물의 신뢰성\n"
+            f"3.효율성: 성능, 확장성, 코드 최적화 등 효율적인 해결책 제시\n"
+            f"4.협업 및 커뮤니케이션: 협업 경험, 코드 리뷰 태도, 의사소통 능력\n"
+            f"5.성장 가능성 및 태도: 새로운 기술 학습 의지, 피드백 수용, 문제 접근 태도\n"
+            f"150자 이내로 간결하고 명확하게 서술하라."
+        )
+
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "당신은 사용자 답변의 종합적인 평가를 제공하는 면접관이다."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        return response.choices[0].message.content.strip()
+
+    except Exception as e:
+        logging.error(f"GPT 답변 요약 생성 실패: {e}")
+        return None

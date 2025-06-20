@@ -8,8 +8,8 @@ from django.http import JsonResponse
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from interview.tasks import generate_feedback
-from interview.models import Interview, Resume
+from interview.tasks import generate_feedback, generate_answer_summary
+from interview.models import Interview, Resume, UserAnswer
 from result.models import Result
 from interview.utils import analyze_behavior
 from django.core.exceptions import ObjectDoesNotExist
@@ -189,3 +189,30 @@ class InterviewResultView(APIView):
             logging.error(f"면접 결과 생성 오류:{e}")
             return Response({"error":"면접 결과 생성 실패"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+class AnswerSummaryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_id="답변 요약 피드백",
+        operation_description="면접자의 전체 답변을 기반으로 GPT 요약 피드백을 생성하는 API"
+    )
+    def post(self, request, interview_id):
+        interview = Interview.objects.get(id=interview_id)
+
+        answers = UserAnswer.objects.filter(
+            question__interview_id=interview.id
+        ).select_related("question").order_by("question_id")
+
+        combined_answers = "\n".join([f"Q{i+1}: {a.question.content}\nA: {a.content}" for i, a in enumerate(answers)])
+
+        summary = generate_answer_summary(combined_answers)
+
+        result, _ = Result.objects.get_or_create(interview=interview)
+        result.answer_summary = summary
+        result.save()
+
+        return Response({
+            "interview_id": interview.id,
+            "answer_summary": summary
+        }, status=status.HTTP_201_CREATED)

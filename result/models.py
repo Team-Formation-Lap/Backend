@@ -9,7 +9,8 @@ class Result(models.Model):
     answer_feedback = models.TextField(null=True, blank=True)
     video_url = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+    answer_summary = models.TextField(null=True, blank=True)
+
     def __str__(self):
         return f"result: {self.interview.id}"
 
