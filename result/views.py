@@ -86,6 +86,7 @@ class ResultOpenView(APIView):
             "behavior_feedback": result.behavior_feedback,
             "answer_feedback": result.answer_feedback,
             "qna_pair": qna_pair,
+            "video_url": result.video_url
         }, status=status.HTTP_200_OK)
 
 class ResultDeleteView(APIView):
