@@ -62,6 +62,8 @@ class ResultListView(APIView):
         ]
         return Response({"results": result_list}, status=status.HTTP_200_OK)
 
+import ast
+
 class ResultOpenView(APIView):
     permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
@@ -70,6 +72,11 @@ class ResultOpenView(APIView):
     )
     def get(self, request, result_id):
         result = Result.objects.get(id=result_id)
+
+        try:
+            parsed_answer_feedback = ast.literal_eval(result.answer_feedback)
+        except (ValueError, SyntaxError):
+            parsed_answer_feedback = []
 
         questions = GPTQuestion.objects.filter(interview_id=result.interview_id).prefetch_related("useranswer")
         qna_pair = []
@@ -84,7 +91,7 @@ class ResultOpenView(APIView):
             "resume_id": result.interview.resume_id,
             "overall_feedback": result.overall_feedback,
             "behavior_feedback": result.behavior_feedback,
-            "answer_feedback": result.answer_feedback,
+            "answer_feedback": parsed_answer_feedback,
             "qna_pair": qna_pair,
             "video_url": result.video_url
         }, status=status.HTTP_200_OK)
