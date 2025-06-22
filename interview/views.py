@@ -9,7 +9,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from interview.tasks import generate_feedback
-from interview.models import Interview, Resume
+from interview.models import Interview, Resume, UserAnswer
 from result.models import Result
 from interview.utils import analyze_behavior
 from django.core.exceptions import ObjectDoesNotExist
@@ -160,8 +160,15 @@ class InterviewResultView(APIView):
             else:
                 return Response({"error":"행동 분석 데이터가 없습니다."}, status=status.HTTP_404_NOT_FOUND)
 
+            answers = UserAnswer.objects.filter(
+                question__interview_id=interview.id
+            ).select_related("question").order_by("question_id")
+
+            combined_answers = "\n".join(
+                [f"Q{i + 1}: {a.question.content}\nA: {a.content}" for i, a in enumerate(answers)])
+
             #피드백 생성
-            feedback=generate_feedback(interview_id, behavior_data)
+            feedback=generate_feedback(interview_id, behavior_data, combined_answers)
             logging.info(f"GPT 피드백 결과:{feedback}")
             if feedback is None:
                 return Response({"error":"GPT 피드백 생성 실패"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

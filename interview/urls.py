@@ -8,5 +8,5 @@ app_name='apps'
 urlpatterns=[
     path("start", StartInterviewView.as_view(), name="start_interview"),
     path("behavior/<int:interview_id>", BehaviorAnalysisView.as_view(), name="behavior_analysis"),
-    path("result/<int:interview_id>", InterviewResultView.as_view(), name="interview_result")
+    path("result/<int:interview_id>", InterviewResultView.as_view(), name="interview_result"),
 ]
