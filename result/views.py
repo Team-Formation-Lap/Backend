@@ -73,10 +73,17 @@ class ResultOpenView(APIView):
     def get(self, request, result_id):
         result = Result.objects.get(id=result_id)
 
+        # answer_feedback_list 파싱
         try:
             parsed_answer_feedback = ast.literal_eval(result.answer_feedback)
         except (ValueError, SyntaxError):
             parsed_answer_feedback = []
+
+        # overall_feedback 파싱
+        try:
+            parsed_overall_feedback = ast.literal_eval(result.overall_feedback)
+        except (ValueError, SyntaxError):
+            parsed_overall_feedback = []
 
         questions = GPTQuestion.objects.filter(interview_id=result.interview_id).prefetch_related("useranswer")
         qna_pair = []
@@ -89,7 +96,7 @@ class ResultOpenView(APIView):
         return Response({
             "resume": result.interview.resume.filename,
             "resume_id": result.interview.resume_id,
-            "overall_feedback": result.overall_feedback,
+            "overall_feedback": parsed_overall_feedback,
             "behavior_feedback": result.behavior_feedback,
             "answer_feedback": parsed_answer_feedback,
             "qna_pair": qna_pair,

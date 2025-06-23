@@ -228,31 +228,12 @@ def generate_feedback(interview_id, behavior_data, combined_answers):
             feedback = response.choices[0].message.content.strip()
             answer.feedback = feedback
 
-            score_prompt = (
-                f"다음은 면접 질문과 이에 대한 사용자의 답변, 피드백이다.\n"
-                f"질문: {question.content}\n"
-                f"답변: {answer.content}\n\n"
-                f"피드백: {feedback}"
-                f"이 답변을 1점 단위로 10점 만점으로 평가할 것\n"
-                f"점수만 숫자로 출력해라 (예: 3, 8 등), 다른 말은 하지말 것."
-            )
-
-            score_response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": "당신은 면접관입니다. 점수만 숫자로 출력합니다."},
-                    {"role": "user", "content": score_prompt}
-                ]
-            )
-            score = float(score_response.choices[0].message.content.strip())
-            answer.answer_score = score
             answer.save()
 
             answer_feedback_list.append({
                 "question": question.content,
                 "answer": answer.content,
                 "feedback": feedback,
-                "score": score,
             })
 
         # 행동 피드백 생성
@@ -295,8 +276,37 @@ def generate_feedback(interview_id, behavior_data, combined_answers):
         )
         overall_feedback=overall_feedback_response.choices[0].message.content.strip()
 
+
+        # 사용자 답변 점수 요청
+        scoring_prompt = (
+            f"면접 질문, 답변, 피드백 목록: {answer_feedback_list} \n"
+            f"이를 바탕으로 다음 5가지 항목에 대해 순서대로 1점 단위로 점수를 매겨라(1~20):\n"
+            f"기준1. 논리성: 문제를 단계적으로 분석하고 해결하는 논리적 사고 능력\n"
+            f"기준2. 정확성: 기술적 지식의 정확성, 구현 결과물의 신뢰성\n"
+            f"기준3. 효율성: 성능, 확장성, 코드 최적화 등 효율적인 해결책 제시\n"
+            f"기준4. 협업 및 커뮤니케이션: 협업 경험, 코드 리뷰 태도, 의사소통 능력\n"
+            f"기준5. 성장 가능성 및 태도: 새로운 기술 학습 의지, 피드백 수용, 문제 접근 태도\n\n"
+            f"**점수만 숫자로 출력해라 (예: 3, 8 등), 다른 말은 하지말 것**\n\n"
+        )
+
+        score_response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "당신은 면접관입니다. 답변 피드백을 바탕으로 평가 점수를 제공합니다."},
+                {"role": "user", "content": scoring_prompt}
+            ]
+        )
+        evaluation_scores = score_response.choices[0].message.content.strip()
+
+        scores = [int(s.strip()) for s in evaluation_scores.split(",") if s.strip().isdigit()]
+
+        overall_feedback_data = [
+            {"content": overall_feedback},
+            {"score": scores}
+        ]
+
         return {
-            "overall_feedback": overall_feedback,
+            "overall_feedback": overall_feedback_data,
             "answer_feedback":answer_feedback_list,
             "behavior_feedback":behavior_feedback
         }
