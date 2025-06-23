@@ -240,9 +240,10 @@ def generate_feedback(interview_id, behavior_data, combined_answers):
         behavior_feedback_prompt=(f"당신은 전문 면접 컨설턴트입니다. 아래는 사용자의 모의면접 영상에서 추출된 행동 데이터입니다. "
                                   f"각 행동(event)은 면접자가 특정 시간 동안 보인 행동을 의미합니다."
                                   f"각 행동에 대해 면접 전문가로서 2~4문장의 피드백을 작성해 주세요."
-                                  f"다음 3가지를 포함하여 작성해 주세요:1. 이 행동이 어떤 인상을 줄 수 있는지, 2. 면접에서 바람직한 행동인지 평가,3. 실전 면접에서 개선/유지할 팁"
-                                  f"출력은 다음 형식을 따르세요: [시작~끝초|피드백]"
-                                  f"행동 데이터:{behavior_data}")
+                                  "다만, 피드백은 번호를 붙이지 말고 시간 정보도 포함하지 마세요. "
+                                  f"다음 3가지를 포함하여 작성해 주세요. 이 행동이 어떤 인상을 줄 수 있는지, 면접에서 바람직한 행동인지 평가, 실전 면접에서 개선/유지할 팁"
+                                  f"행동 데이터:{behavior_data}"
+                                  f"**400자를 넘기지 말것**")
 
         behavior_feedback_response=client.chat.completions.create(
             model="gpt-4o",
@@ -308,7 +309,10 @@ def generate_feedback(interview_id, behavior_data, combined_answers):
         return {
             "overall_feedback": overall_feedback_data,
             "answer_feedback":answer_feedback_list,
-            "behavior_feedback":behavior_feedback
+            "behavior_feedback":{
+                "behavior_data": behavior_data,
+                "feedback_data":behavior_feedback
+            }
         }
 
     except Exception as e:

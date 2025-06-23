@@ -131,7 +131,7 @@ class HandMovementDetector:
             time_str = f"{minutes:02d}:{seconds:02d}"
             if time_str not in self.logged_times_movement:
                 self.logged_times_movement.add(time_str)
-                action_data = {"time": time_str, "action": "hand moving"}
+                action_data = {"time": time_str, "action": "손의 불필요한 움직임이 감지되었습니다"}
                 log_action(action_data)
 
         if results_faces.detections and results_hands.multi_hand_landmarks:
@@ -164,7 +164,7 @@ class HandMovementDetector:
                         time_str = f"{minutes:02d}:{seconds:02d}"
                         if time_str not in self.logged_times_near_head:
                             self.logged_times_near_head.add(time_str)
-                            action_data = {"time": time_str, "action": "hand near face"}
+                            action_data = {"time": time_str, "action": "손이 얼굴 주변에 위치해 면접에 방해가 될 수 있습니다"}
                             log_action(action_data)
                         break
 
@@ -211,7 +211,7 @@ class UpperBodyPostureDetector:
                 time_str = f"{minutes:02d}:{seconds:02d}"
                 if time_str not in self.logged_times:
                     self.logged_times.add(time_str)
-                    action_data = {"time": time_str, "action": "inclined shoulder"}
+                    action_data = {"time": time_str, "action": "어깨가 기울어져 있어 자세가 불안정해 보일 수 있습니다"}
                     log_action(action_data)
 
         return output_frame
@@ -231,9 +231,9 @@ class EyeTrackingDetector:
         ratio = iris_pos / eye_width if eye_width != 0 else 0.5
 
         if ratio < 0.44: #right
-            return "Not looking center"
+            return "시선이 산만하여 눈을 마주치지 않는 것으로 보입니다"
         elif ratio > 0.56: #left
-            return "Not looking center"
+            return "시선이 산만하여 눈을 마주치지 않는 것으로 보입니다"
         else:
             return "center"
 
