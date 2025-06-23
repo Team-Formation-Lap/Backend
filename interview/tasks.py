@@ -214,7 +214,7 @@ def generate_feedback(interview_id, behavior_data, combined_answers):
                 f"중복 표현, 모호한 단어, 불필요하게 긴 문장이 있는 경우, 어떻게 더 간결하고 논리적으로 표현할 수 있는지도 제안해주세요.\n"
                 f"질문에 적절히 답변했는지, 논리 구조가 명확했는지를 평가해주세요.\n"
                 f"3. 도입 → 문제 인식 → 해결 → 결과의 흐름이 자연스러운지, 면접관 입장에서 신뢰를 줄 수 있는 구성인지 판단해주세요.\n"
-                #f"출력은 다음 형식을 따르세요: \"question\": \"질문 내용\",\"answer\": \"답변 내용\",\"feedback\": \"답변피드백\""
+                f"**200자를 넘기지 말것**"
             )
 
 
@@ -227,12 +227,32 @@ def generate_feedback(interview_id, behavior_data, combined_answers):
             )
             feedback = response.choices[0].message.content.strip()
             answer.feedback = feedback
+
+            score_prompt = (
+                f"다음은 면접 질문과 이에 대한 사용자의 답변, 피드백이다.\n"
+                f"질문: {question.content}\n"
+                f"답변: {answer.content}\n\n"
+                f"피드백: {feedback}"
+                f"이 답변을 1점 단위로 10점 만점으로 평가할 것\n"
+                f"점수만 숫자로 출력해라 (예: 3, 8 등), 다른 말은 하지말 것."
+            )
+
+            score_response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "당신은 면접관입니다. 점수만 숫자로 출력합니다."},
+                    {"role": "user", "content": score_prompt}
+                ]
+            )
+            score = float(score_response.choices[0].message.content.strip())
+            answer.answer_score = score
             answer.save()
 
             answer_feedback_list.append({
                 "question": question.content,
                 "answer": answer.content,
-                "feedback": feedback
+                "feedback": feedback,
+                "score": score,
             })
 
         # 행동 피드백 생성

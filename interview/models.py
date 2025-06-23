@@ -28,6 +28,7 @@ class UserAnswer(models.Model):
     question=models.OneToOneField(GPTQuestion, on_delete=models.CASCADE)
     content=models.TextField()
     feedback = models.TextField(null=True, blank=True)
+    answer_score = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return f"Answer {self.id} - {self.content} | Question {self.question.id}"

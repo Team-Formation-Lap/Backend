@@ -160,6 +160,7 @@ class InterviewResultView(APIView):
             else:
                 return Response({"error":"행동 분석 데이터가 없습니다."}, status=status.HTTP_404_NOT_FOUND)
 
+            #질문-답변 매칭 문자열 만들기
             answers = UserAnswer.objects.filter(
                 question__interview_id=interview.id
             ).select_related("question").order_by("question_id")
