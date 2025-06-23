@@ -110,7 +110,7 @@ class BehaviorAnalysisView(APIView):
                 "behavior_data":behavior_data
             }, status=status.HTTP_201_CREATED)
 
-        except Interview.DoseNotExist:
+        except Interview.DoesNotExist:
             return Response(
                 {"error":"해당 면접 정보를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
