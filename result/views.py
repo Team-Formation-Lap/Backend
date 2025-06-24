@@ -97,7 +97,10 @@ class ResultOpenView(APIView):
             "resume": result.interview.resume.filename,
             "resume_id": result.interview.resume_id,
             "overall_feedback": parsed_overall_feedback,
-            "behavior_feedback": result.behavior_feedback,
+            "behavior_feedback": {
+                "behavior_data" :result.behavior_data,
+                "feedback_data": result.behavior_feedback
+            },
             "answer_feedback": parsed_answer_feedback,
             "qna_pair": qna_pair,
             "video_url": result.video_url
