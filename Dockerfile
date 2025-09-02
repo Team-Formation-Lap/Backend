@@ -1,10 +1,10 @@
-# 베이스 이미지 정의
 FROM python:3.9
 
-# 작업 디렉토리 생성 및 설정
 WORKDIR /Backend
 
-RUN apt-get update && apt-get install -y libgl1-mesa-glx
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends libgl1 \
+ && rm -rf /var/lib/apt/lists/*
 
 # 필요한 패키지 설치
 RUN pip install --upgrade pip
@@ -17,4 +17,3 @@ COPY . /Backend/
 
 # Django 프로젝트 실행
 EXPOSE 8000
-
