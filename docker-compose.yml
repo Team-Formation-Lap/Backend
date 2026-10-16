@@ -23,8 +23,11 @@ services:
     restart: always
     depends_on:
       - db
+      - rabbitmq
     env_file:
       - .env
+    environment:
+      CELERY_BROKER_URL: amqp://${RABBITMQ_USER:-intelliview}:${RABBITMQ_PASSWORD:-intelliview}@rabbitmq:5672//
     volumes:
       - .:/Backend
     ports:
@@ -37,40 +40,34 @@ services:
       - FLAP
 
 
-#  rabbitmq:
-#    image: rabbitmq:3.7-management
-#    container_name: rabbitmq
-#    ports:
-#      - "5672:5672"
-#      - "15672:15672"
-#    expose:
-#      - 5672
-#    environment:
-#      - RABBITMQ_USER=guest
-#      - RABBITMQ_PASSWORD=guest
-#    depends_on:
-#      - db
-#      - backend
-#    networks:
-#      - FLAP
-#
-#
-#  celery:
-#    container_name: celery
-#    env_file:
-#      - .env
-#    build:
-#      context: .
-#    depends_on:
-#      - rabbitmq
-#      - backend
-#    environment:
-#      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
-#    command: sh -c "celery -A apps worker -l info"
-#    volumes:
-#      - .:/app
-#    networks:
-#      - FLAP
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-intelliview}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-intelliview}
+    networks:
+      - FLAP
+
+
+  celery:
+    container_name: celery
+    build: .
+    env_file:
+      - .env
+    environment:
+      CELERY_BROKER_URL: amqp://${RABBITMQ_USER:-intelliview}:${RABBITMQ_PASSWORD:-intelliview}@rabbitmq:5672//
+    depends_on:
+      - db
+      - rabbitmq
+    volumes:
+      - .:/Backend
+    command: celery -A apps worker -l info --concurrency=2
+    networks:
+      - FLAP
 
 volumes:
   mysql_data:

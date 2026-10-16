@@ -8,7 +8,9 @@ from django.http import JsonResponse
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from interview.tasks import generate_feedback
+from django.db import transaction
+from django.db.models import Q
+from interview.tasks import generate_feedback_task
 from interview.models import Interview, Resume, UserAnswer
 from result.models import Result
 from interview.utils import analyze_behavior
@@ -137,63 +139,78 @@ class BehaviorAnalysisView(APIView):
 
 
 # 면접 결과 생성 API
+# POST: 피드백 생성 작업을 큐에 넣고 바로 202를 반환한다. (GPT 호출을 요청 안에서 기다리지 않음)
+# GET : 생성 상태를 조회한다. 완료되면 피드백을 함께 반환한다.
 class InterviewResultView(APIView):
     permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
         operation_id="면접 결과 생성",
-        operation_description="면접 결과를 생성하는 API",
+        operation_description="면접 결과(피드백) 생성 작업을 시작하는 API. 202를 반환하며, 결과는 GET으로 조회한다.",
     )
     def post(self, request, interview_id):
         try:
-            # 면접 데이터 가져오기
-            interview=Interview.objects.get(id=interview_id, user_id=request.user.id)
+            interview = Interview.objects.get(id=interview_id, user_id=request.user.id)
 
-            # 면접 영상 url 가져오기
-            result=Result.objects.filter(interview=interview).first()
+            result = Result.objects.filter(interview=interview).first()
             if not result or not result.video_url:
                 return Response({"error":"업로드 된 면접 영상을 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
 
-            #행동 분석 데이터 가져오기
-            if result.behavior_data:
-                behavior_data=result.behavior_data
-            else:
+            if not result.behavior_data:
                 return Response({"error":"행동 분석 데이터가 없습니다."}, status=status.HTTP_404_NOT_FOUND)
 
-            #질문-답변 매칭 문자열 만들기
-            answers = UserAnswer.objects.filter(
-                question__interview_id=interview.id
-            ).select_related("question").order_by("question_id")
+            Status = Result.FeedbackStatus
 
-            combined_answers = "\n".join(
-                [f"Q{i + 1}: {a.question.content}\nA: {a.content}" for i, a in enumerate(answers)])
+            # 이미 완료된 결과면 다시 만들지 않고 그대로 반환 (재요청에 멱등)
+            if result.feedback_status == Status.DONE:
+                return Response(self._body(interview_id, result), status=status.HTTP_200_OK)
 
-            #피드백 생성
-            feedback=generate_feedback(interview_id, behavior_data, combined_answers)
-            logging.info(f"GPT 피드백 결과:{feedback}")
-            if feedback is None:
-                return Response({"error":"GPT 피드백 생성 실패"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            # 처음 요청이거나 이전 작업이 실패한 경우에만 PENDING으로 바꾸고 작업을 발행한다.
+            # 조건부 UPDATE라 동시에 두 번 요청해도 작업은 한 번만 발행된다.
+            with transaction.atomic():
+                queued = Result.objects.filter(
+                    Q(feedback_status__isnull=True) | Q(feedback_status=Status.FAILED),
+                    id=result.id,
+                ).update(feedback_status=Status.PENDING, feedback_error=None)
 
-            # 피드백 저장
-            result.answer_feedback=feedback["answer_feedback"]
-            result.behavior_feedback=feedback["behavior_feedback"]
-            result.overall_feedback=feedback["overall_feedback"]
-            result.save()
-            logging.info(f"면접 결과 저장 완료 - Interview ID:{interview_id}")
+                if queued == 1:
+                    # 커밋된 뒤에 발행해야 워커가 PENDING 상태를 읽을 수 있다.
+                    result_id = result.id
+                    transaction.on_commit(lambda: generate_feedback_task.delay(result_id))
 
-            return Response({
-                "interview_id":interview_id,
-                "feedback":{
-                    "종합피드백":result.overall_feedback,
-                    "행동피드백":result.behavior_feedback,
-                    "답변피드백":result.answer_feedback
-                },
-                "video_url":result.video_url
-            }, status=status.HTTP_201_CREATED)
+            result.refresh_from_db(fields=["feedback_status"])
+            return Response(self._body(interview_id, result), status=status.HTTP_202_ACCEPTED)
 
         except ObjectDoesNotExist:
             return Response({"error":"해당 면접을 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            logging.error(f"면접 결과 생성 오류:{e}")
+            logging.error(f"면접 결과 생성 요청 오류:{e}")
             return Response({"error":"면접 결과 생성 실패"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    @swagger_auto_schema(
+        operation_id="면접 결과 생성 상태 조회",
+        operation_description="피드백 생성 상태(PENDING, PROCESSING, DONE, FAILED)를 조회하는 API. DONE이면 피드백을 함께 반환한다.",
+    )
+    def get(self, request, interview_id):
+        try:
+            interview = Interview.objects.get(id=interview_id, user_id=request.user.id)
+            result = Result.objects.filter(interview=interview).first()
+            if not result or not result.feedback_status:
+                return Response({"error":"생성 요청된 면접 결과가 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(self._body(interview_id, result), status=status.HTTP_200_OK)
+        except ObjectDoesNotExist:
+            return Response({"error":"해당 면접을 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+
+    @staticmethod
+    def _body(interview_id, result):
+        body = {"interview_id": interview_id, "status": result.feedback_status}
+        if result.feedback_status == Result.FeedbackStatus.DONE:
+            body["feedback"] = {
+                "종합피드백": result.overall_feedback,
+                "행동피드백": result.behavior_feedback,
+                "답변피드백": result.answer_feedback,
+            }
+            body["video_url"] = result.video_url
+        elif result.feedback_status == Result.FeedbackStatus.FAILED:
+            body["error"] = result.feedback_error
+        return body
