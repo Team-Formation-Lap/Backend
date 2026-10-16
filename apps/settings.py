@@ -172,13 +172,11 @@ SIMPLE_JWT = {
     'TOKEN_TYPE_CLAIM': 'token_type',
 }
 
-# RabbitMQ의 guest 계정은 localhost에서만 접속할 수 있어서, 컨테이너 간 통신에는 별도 계정을 쓴다.
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "amqp://guest:guest@localhost:5672//")
+CELERY_BROKER_URL = "amqp://guest:guest@rabbitmq:5672/"
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_ACCEPT_CONTENT = ["application/json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
-CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", "False") == "True"  # 테스트용: 워커 없이 즉시 실행
 
 
 # Internationalization
